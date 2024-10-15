@@ -3,7 +3,6 @@ import torch.nn as nn
 
 from openstl.modules import ConvLSTMCell
 
-mse = nn.MSELoss()
 
 class CustomLoss(nn.MSELoss):
     
@@ -11,15 +10,28 @@ class CustomLoss(nn.MSELoss):
         super().__init__(**args)
     
     def forward(self, pred, true):
-        loss = mse(pred, true)
-        # inp_ani[-1, 0, ...].T.argmax(1).mean()
-        # pred_ani[-1, 0, ...].T.argmax(1).mean()
+        # Calculate regular MSE loss between pred and true
+        loss = super().forward(pred, true)  # Use the built-in MSELoss from nn.MSELoss
         
-        pred_x_i = pred[:, :,0, ...].T.argmax(1).mean(0).flatten()
-        true_x_i = true[:, :,0, ...].T.argmax(1).mean(0).flatten()
+        # Differentiable approximation for argmax
+        softmax_pred = torch.softmax(pred[:, :, 0, ...].T, dim=-1)
+        softmax_true = torch.softmax(true[:, :, 0, ...].T, dim=-1)
         
-        heuristic_loss = mse(pred_x_i, true_x_i)
-        return heuristic_loss
+        # Create index tensor for the weighted sum of softmax
+        indices = torch.arange(softmax_pred.shape[-1], dtype=torch.float32).to(pred.device)
+        
+        # Compute the softmax-weighted indices (replaces argmax)
+        pred_x_i = (softmax_pred * indices).sum(-1).mean(0).flatten()
+        true_x_i = (softmax_true * indices).sum(-1).mean(0).flatten()
+        
+        # Heuristic loss (MSE between softmax-weighted indices)
+        heuristic_loss = super().forward(pred_x_i, true_x_i)
+        
+        # Combine the original MSE loss with the heuristic loss
+        total_loss = loss + heuristic_loss
+        
+        return total_loss
+
     
     
 class ConvLSTM_Model(nn.Module):
