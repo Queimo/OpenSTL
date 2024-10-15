@@ -36,7 +36,7 @@ class CustomLoss(nn.MSELoss):
         heuristic_loss = super().forward(pred_x_i, true_x_i)
         
         # Combine the original MSE loss with the heuristic loss
-        total_loss = loss + heuristic_loss + total_variation_loss(pred[:, :, 0, ...].T)
+        total_loss = loss + heuristic_loss
         
         return total_loss
 
