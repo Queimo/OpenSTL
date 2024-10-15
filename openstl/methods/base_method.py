@@ -7,6 +7,15 @@ from openstl.utils import print_log, check_dir
 from openstl.core import get_optim_scheduler, timm_schedulers
 from openstl.core import metric
 
+def total_variation_loss(x):
+    """
+    Total Variation Loss for smoothness. Encourages smoothness by penalizing 
+    large differences between neighboring values in the predicted field.
+    """
+    diff_i = torch.abs(x[:, :, 1:, :] - x[:, :, :-1, :])  # Differences between rows
+    diff_j = torch.abs(x[:, :, :, 1:] - x[:, :, :, :-1])  # Differences between columns
+    return diff_i.mean() + diff_j.mean()
+
 class CustomLoss(nn.MSELoss):
     
     def __init__(self, **args):
@@ -31,7 +40,7 @@ class CustomLoss(nn.MSELoss):
         heuristic_loss = super().forward(pred_x_i, true_x_i)
         
         # Combine the original MSE loss with the heuristic loss
-        total_loss = loss + heuristic_loss*10
+        total_loss = loss + heuristic_loss*10 + total_variation_loss(pred[:, :, 0, ...].T)
         
         return total_loss
 
