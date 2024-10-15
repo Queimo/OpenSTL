@@ -43,7 +43,7 @@ class ConvLSTM_Model(nn.Module):
         true_x_i = true[:, :,0, ...].T.argmax(1).mean(0).flatten()
         
         heuristic_loss = self.MSE_criterion(pred_x_i, true_x_i)
-        return loss + heuristic_loss
+        return heuristic_loss
 
 
     def forward(self, frames_tensor, mask_true, **kwargs):
