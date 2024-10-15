@@ -5,7 +5,12 @@ from openstl.modules import ConvLSTMCell
 
 mse = nn.MSELoss()
 
-def custom_loss(self, pred, true):
+class CustomLoss(nn.MSELoss):
+    
+    def __init__(self, **args):
+        super().__init__(**args)
+    
+    def forward(self, pred, true):
         loss = mse(pred, true)
         # inp_ani[-1, 0, ...].T.argmax(1).mean()
         # pred_ani[-1, 0, ...].T.argmax(1).mean()
@@ -15,7 +20,8 @@ def custom_loss(self, pred, true):
         
         heuristic_loss = mse(pred_x_i, true_x_i)
         return heuristic_loss
-
+    
+    
 class ConvLSTM_Model(nn.Module):
     r"""ConvLSTM Model
 
@@ -36,7 +42,7 @@ class ConvLSTM_Model(nn.Module):
 
         height = H // configs.patch_size
         width = W // configs.patch_size
-        self.MSE_criterion = custom_loss
+        self.MSE_criterion = CustomLoss()
         for i in range(num_layers):
             in_channel = self.frame_channel if i == 0 else num_hidden[i - 1]
             cell_list.append(
@@ -93,7 +99,7 @@ class ConvLSTM_Model(nn.Module):
         # [length, batch, channel, height, width] -> [batch, length, height, width, channel]
         next_frames = torch.stack(next_frames, dim=0).permute(1, 0, 3, 4, 2).contiguous()
         if kwargs.get('return_loss', True):
-            loss = self.custom_loss(next_frames, frames_tensor[:, 1:])
+            loss = self.MSE_criterion(next_frames, frames_tensor[:, 1:])
         else:
             loss = None
 

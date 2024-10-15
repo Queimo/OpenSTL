@@ -6,6 +6,23 @@ from openstl.utils import print_log, check_dir
 from openstl.core import get_optim_scheduler, timm_schedulers
 from openstl.core import metric
 
+mse = nn.MSELoss()
+
+class CustomLoss(nn.MSELoss):
+    
+    def __init__(self, **args):
+        super().__init__(**args)
+    
+    def forward(self, pred, true):
+        loss = mse(pred, true)
+        # inp_ani[-1, 0, ...].T.argmax(1).mean()
+        # pred_ani[-1, 0, ...].T.argmax(1).mean()
+        
+        pred_x_i = pred[:, :,0, ...].T.argmax(1).mean(0).flatten()
+        true_x_i = true[:, :,0, ...].T.argmax(1).mean(0).flatten()
+        
+        heuristic_loss = mse(pred_x_i, true_x_i)
+        return heuristic_loss
 
 class Base_method(l.LightningModule):
 
@@ -21,7 +38,7 @@ class Base_method(l.LightningModule):
         self.save_hyperparameters()
         self.model = self._build_model(**args)
         
-        self.criterion = nn.MSELoss()
+        self.criterion = CustomLoss()
         self.test_outputs = []
 
     def _build_model(self):
