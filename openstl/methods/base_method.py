@@ -20,11 +20,27 @@ class Base_method(l.LightningModule):
 
         self.save_hyperparameters()
         self.model = self._build_model(**args)
-        self.criterion = nn.MSELoss()
+        
+        self.mse = nn.MSELoss()
+        
+        self.criterion = self.custom_loss
         self.test_outputs = []
 
     def _build_model(self):
         raise NotImplementedError
+    
+    def custom_loss(self, pred, true):
+        mse = self.mse(pred, true)
+        # inp_ani[-1, 0, ...].T.argmax(1).mean()
+        # pred_ani[-1, 0, ...].T.argmax(1).mean()
+        
+        pred_x_i = pred[:, :,0, ...].T.argmax(1).mean(0).flatten()
+        true_x_i = true[:, :,0, ...].T.argmax(1).mean(0).flatten()
+        
+        heuristic_ loss = self.mse(pred_x_i, true_x_i)
+        return mse + heuristic_loss
+        
+        
     
     def configure_optimizers(self):
         optimizer, scheduler, by_epoch = get_optim_scheduler(
