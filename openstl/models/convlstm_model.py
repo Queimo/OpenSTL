@@ -3,6 +3,18 @@ import torch.nn as nn
 
 from openstl.modules import ConvLSTMCell
 
+mse = nn.MSELoss()
+
+def custom_loss(self, pred, true):
+        loss = mse(pred, true)
+        # inp_ani[-1, 0, ...].T.argmax(1).mean()
+        # pred_ani[-1, 0, ...].T.argmax(1).mean()
+        
+        pred_x_i = pred[:, :,0, ...].T.argmax(1).mean(0).flatten()
+        true_x_i = true[:, :,0, ...].T.argmax(1).mean(0).flatten()
+        
+        heuristic_loss = mse(pred_x_i, true_x_i)
+        return heuristic_loss
 
 class ConvLSTM_Model(nn.Module):
     r"""ConvLSTM Model
@@ -24,7 +36,7 @@ class ConvLSTM_Model(nn.Module):
 
         height = H // configs.patch_size
         width = W // configs.patch_size
-        self.MSE_criterion = nn.MSELoss()
+        self.MSE_criterion = custom_loss
         for i in range(num_layers):
             in_channel = self.frame_channel if i == 0 else num_hidden[i - 1]
             cell_list.append(
@@ -34,16 +46,7 @@ class ConvLSTM_Model(nn.Module):
         self.cell_list = nn.ModuleList(cell_list)
         self.conv_last = nn.Conv2d(num_hidden[num_layers - 1], self.frame_channel,
                                    kernel_size=1, stride=1, padding=0, bias=False)
-    def custom_loss(self, pred, true):
-        loss = self.MSE_criterion(pred, true)
-        # inp_ani[-1, 0, ...].T.argmax(1).mean()
-        # pred_ani[-1, 0, ...].T.argmax(1).mean()
-        
-        pred_x_i = pred[:, :,0, ...].T.argmax(1).mean(0).flatten()
-        true_x_i = true[:, :,0, ...].T.argmax(1).mean(0).flatten()
-        
-        heuristic_loss = self.MSE_criterion(pred_x_i, true_x_i)
-        return heuristic_loss
+    
 
 
     def forward(self, frames_tensor, mask_true, **kwargs):
